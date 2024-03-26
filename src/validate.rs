@@ -110,10 +110,11 @@ pub trait RrsigExt: Compose {
         N: ToDname,
         D: RecordData,
         B: OctetsBuilder + AsMut<[u8]>,
+        R: AsRef<Record<N, D>>,
     >(
         &self,
         buf: &mut B,
-        records: &mut [Record<N, D>],
+        records: &mut [R],
     ) -> Result<(), ShortBuf>
     where
         D: CanonicalOrd + Compose + Sized;
@@ -151,10 +152,11 @@ impl<Octets: AsRef<[u8]>, Name: Compose> RrsigExt for Rrsig<Octets, Name> {
         N: ToDname,
         D: RecordData,
         B: OctetsBuilder + AsMut<[u8]>,
+        R: AsRef<Record<N, D>>,
     >(
         &self,
         buf: &mut B,
-        records: &mut [Record<N, D>],
+        records: &mut [R],
     ) -> Result<(), ShortBuf>
     where
         D: CanonicalOrd + Compose + Sized,
@@ -175,10 +177,12 @@ impl<Octets: AsRef<[u8]>, Name: Compose> RrsigExt for Rrsig<Octets, Name> {
 
         // The set of all RR(i) is sorted into canonical order.
         // See https://tools.ietf.org/html/rfc4034#section-6.3
-        records.sort_by(|a, b| a.data().canonical_cmp(b.data()));
+        records.sort_by(|a, b| {
+            a.as_ref().data().canonical_cmp(b.as_ref().data())
+        });
 
         // RR(i) = name | type | class | OrigTTL | RDATA length | RDATA
-        for rr in records {
+        for rr in records.iter().map(|r| r.as_ref()) {
             // Handle expanded wildcards as per [RFC4035, Section 5.3.2]
             // (https://tools.ietf.org/html/rfc4035#section-5.3.2).
             let rrsig_labels = usize::from(self.labels());
