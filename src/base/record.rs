@@ -931,7 +931,7 @@ impl<'a, Octs: Octets + ?Sized> ParsedRecord<'a, Octs> {
         &self,
     ) -> Result<Option<Record<ParsedName<Octs::Range<'_>>, Data>>, ParseError>
     where
-        Data: ParseRecordData<'a, Octs>,
+        Data: ParseRecordData<'a, Octs> + ?Sized,
     {
         self.header
             .deref_owner()
